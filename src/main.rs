@@ -26,7 +26,6 @@ async fn render_html(req: actix_web::HttpRequest, tmpl: web::Data<tera::Tera>) -
             .replace('_', " "),
     );
 
-    // Assuming filename corresponds to the name of your template
     let rendered_html = tmpl
         .render(&filename_final, &context)
         .expect("Error rendering template");
