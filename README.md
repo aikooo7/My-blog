@@ -25,16 +25,20 @@ Secondly, here are the steps:
 Development mode:
 
 ```
+npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch
 cargo run
 ```
 
 Production mode:
 
 ```
+npx tailwindcss -i ./src/input.css -o ./dist/output.css
 cargo run --release
 ```
 
-**NOTE:** This needs to be run from the root of the project (where the `Cargo.toml` file is located).
+**NOTE:** This needs to be run from the root of the project (where the Cargo.toml file is located).
+
+**NOTE:** You can add the --watch flag so Tailwind CSS will automatically rebuild the CSS each time the HTML file(s) is changed.
 
 # Need Anything?
 
