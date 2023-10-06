@@ -73,7 +73,6 @@ async fn main() -> std::io::Result<()> {
             .service(home)
             .service(actix_files::Files::new("/dist", "dist").show_files_listing())
             .service(web::resource("/{filename:.+\\.html}").to(render_html))
-            .service(actix_files::Files::new("/", "assets/html").show_files_listing())
     })
     .bind(("127.0.0.1", 6969))?
     .run()
