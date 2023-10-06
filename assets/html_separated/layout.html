@@ -5,9 +5,20 @@
     <title>{% block title %}Default Title{% endblock title %}</title>
     <link href="/dist/output.css" type="text/css" rel="stylesheet">
   </head>
-<body class="flex flex-col justify-between min-h-screen font-sans leading-normal tracking-normal bg-gruvbox-black text-gruvbox-gray"
+  <body class="flex flex-col justify-between min-h-screen font-sans leading-normal tracking-normal bg-gruvbox-black text-gruvbox-gray">
+    <header class="text-white p-4">
+      <div class="container mx-auto flex justify-between items-center">
+        <div class="text-2xl font-bold">My blog</div>
+        <nav>
+          <ul class="flex space-x-4">
+            <li><a href="/" class="hover:text-orange-300">Home</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    
     <main class="container flex-1 w-full md:max-w-3xl mx-auto overflow-x-hidden">
-      <h1 class="text-center font-bold text-4xl">
+      <h1 class="text-center font-bold text-4xl my-8">
         {% block h1_up %}{% endblock h1_up %}
       </h1>
       {% block content %}{% endblock content %}
