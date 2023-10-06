@@ -1,0 +1,96 @@
+use actix_files::{self};
+use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
+use anyhow::Result;
+use glob::glob;
+use lazy_static::lazy_static;
+use std::{path::PathBuf, process::exit};
+use tera::Tera;
+
+async fn render_html(req: actix_web::HttpRequest, tmpl: web::Data<tera::Tera>) -> HttpResponse {
+    // Extract filename from the request path
+    let filename = req.match_info().query("filename").to_string();
+    let filename_final = if filename.contains("html_separated") {
+        return HttpResponse::Forbidden().body("Access denied: file is not accessible.");
+    } else {
+        format!("html/{}", filename)
+    };
+
+    let filename_pathbuf = PathBuf::from(filename);
+    let mut context = tera::Context::new();
+    context.insert(
+        "filename",
+        &filename_pathbuf
+            .with_extension("")
+            .to_string_lossy()
+            .to_string()
+            .replace('_', " "),
+    );
+
+    // Assuming filename corresponds to the name of your template
+    let rendered_html = tmpl
+        .render(&filename_final, &context)
+        .expect("Error rendering template");
+
+    HttpResponse::Ok().body(rendered_html)
+}
+
+#[get("/")]
+async fn home() -> Result<HttpResponse, Error> {
+    let mut context = tera::Context::new();
+    let mut tera = Tera::default();
+
+    tera.add_template_file(
+        "assets/html_separated/layout.html",
+        Some("html_separated/layout.html"),
+    )
+    .expect("Error finding layout.html");
+
+    tera.add_template_file("assets/html_separated/index.html", Some("index.html"))
+        .expect("Error finding index.html");
+
+    let files: Vec<String> = glob("assets/html/*.html")
+        .expect("Error finding html files.")
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            entry
+                .with_extension("")
+                .file_name()
+                .and_then(|os_str| os_str.to_str().map(String::from))
+        })
+        .collect();
+
+    context.insert("files", &files);
+    let rendered = tera
+        .render("index.html", &context)
+        .expect("Error rendering templates.");
+    Ok(HttpResponse::Ok().body(rendered))
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .app_data(actix_web::web::Data::new(TEMPLATES.clone()))
+            .service(home)
+            .service(actix_files::Files::new("/dist", "dist").show_files_listing())
+            .service(web::resource("/{filename:.+\\.html}").to(render_html))
+            .service(actix_files::Files::new("/", "assets/html").show_files_listing())
+    })
+    .bind(("127.0.0.1", 6969))?
+    .run()
+    .await
+}
+
+lazy_static! {
+    pub static ref TEMPLATES: Tera = {
+        let mut tera = match Tera::new("assets/**/*.html") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Error parsing templates. {}", e);
+                exit(1);
+            }
+        };
+        tera.autoescape_on(vec![".html"]);
+        tera
+    };
+}
