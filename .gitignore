@@ -1,6 +1,2 @@
 # Default rust ignores
 /target
-
-# Ignore built css
-
-/dist/*
