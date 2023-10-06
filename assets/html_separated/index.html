@@ -9,7 +9,7 @@
 {% block content%}
 <ul class="flex flex-col items-center">
     {% for file in files %}
-    <li><a class="content-center text-2xl text-orange-400" href="{{ file | safe }}.html" class="text-orange-400">{{ file | safe }}</a></li>
+    <li><a class="content-center text-2xl text-orange-400" href="{{ file | safe }}.html" class="text-orange-400">{{ filename | safe }}</a></li>
     {% endfor %}
 </ul>
 {% endblock %}

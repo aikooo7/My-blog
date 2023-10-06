@@ -58,7 +58,10 @@ async fn home() -> Result<HttpResponse, Error> {
         })
         .collect();
 
+    let filename: Vec<String> = files.iter().map(|file| file.replace('_', " ")).collect();
+
     context.insert("files", &files);
+    context.insert("filename", &filename.join(", "));
     let rendered = tera
         .render("index.html", &context)
         .expect("Error rendering templates.");
