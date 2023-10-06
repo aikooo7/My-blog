@@ -1,0 +1,15 @@
+{% extends "html_separated/layout.html" %}
+
+{% block title %}HomePage{% endblock %}
+
+{% block h1_up %}
+  My articles
+{% endblock h1_up %}
+
+{% block content%}
+<ul class="flex flex-col items-center">
+    {% for file in files %}
+    <li><a class="content-center text-2xl text-orange-400" href="{{ file | safe }}.html" class="text-orange-400">{{ file | safe }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}
