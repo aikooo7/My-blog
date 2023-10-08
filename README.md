@@ -25,14 +25,14 @@ Secondly, here are the steps:
 Development mode:
 
 ```
-npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch
+npx tailwindcss -i ./assets/css/input.css -o ./dist/output.css --watch
 cargo run
 ```
 
 Production mode:
 
 ```
-npx tailwindcss -i ./src/input.css -o ./dist/output.css
+npx tailwindcss -i ./assets/css/input.css -o ./dist/output.css
 cargo run --release
 ```
 
