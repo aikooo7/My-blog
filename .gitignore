@@ -4,3 +4,7 @@
 # Ignore built css
 
 /dist/*.css
+
+# Ignore backup files.
+
+**/*.backup
