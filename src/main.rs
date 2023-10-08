@@ -1,5 +1,9 @@
 use actix_files::{self};
-use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{
+    get,
+    web::{self},
+    App, Error, HttpResponse, HttpServer,
+};
 use glob::glob;
 use lazy_static::lazy_static;
 use log::{error, info};
@@ -85,25 +89,18 @@ async fn render_html(req: actix_web::HttpRequest, tmpl: web::Data<tera::Tera>) -
 #[get("/")]
 async fn home() -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
-    let mut tera = Tera::default();
-
-    tera.add_template_file(
-        "assets/html_separated/layout.html",
-        Some("html_separated/layout.html"),
-    )
-    .expect("Error finding layout.html");
-
-    tera.add_template_file("assets/html_separated/index.html", Some("index.html"))
-        .expect("Error finding index.html");
 
     let files: Vec<String> = glob("assets/html/*.html")
-        .expect("Error finding html files.")
-        .filter_map(Result::ok)
+        .map_err(|err| {
+            error!("Error finding html files: {}", err);
+            actix_web::error::ErrorInternalServerError("Error finding html files.")
+        })?
         .filter_map(|entry| {
-            entry
-                .with_extension("")
-                .file_name()
-                .and_then(|os_str| os_str.to_str().map(String::from))
+            entry.ok().and_then(|path| {
+                path.with_extension("")
+                    .file_name()
+                    .and_then(|os_str| os_str.to_str().map(String::from))
+            })
         })
         .collect();
 
@@ -111,8 +108,8 @@ async fn home() -> Result<HttpResponse, Error> {
 
     context.insert("files", &files);
     context.insert("filename", &filename.join(", "));
-    let rendered = tera
-        .render("index.html", &context)
+    let rendered = TEMPLATES
+        .render("html_separated/index.html", &context)
         .expect("Error rendering templates.");
     Ok(HttpResponse::Ok().body(rendered))
 }
@@ -126,18 +123,43 @@ async fn notfound_handler() -> HttpResponse {
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
+
+async fn servererror_handler() -> HttpResponse {
+    let servererror_html = TEMPLATES.render("html_separated/404.html", &tera::Context::new());
+    match servererror_html {
+        Ok(servererror_html) => HttpResponse::InternalServerError()
+            .content_type("text/html")
+            .body(servererror_html),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("error"));
+
+    if let Err(err) = HttpServer::new(|| {
         App::new()
             .app_data(actix_web::web::Data::new(TEMPLATES.clone()))
             .service(home)
             .service(actix_files::Files::new("/dist", "dist").show_files_listing())
             .service(web::resource("/{filename:.+\\.html}").to(render_html))
+            .default_service(web::to(notfound_handler))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", 8080))
+    .unwrap_or_else(|err| {
+        error!("Error while starting the server: {}", err);
+        exit(-1);
+    })
     .run()
     .await
+    {
+        error!("Error starting the server: {}", err);
+        exit(-1);
+    } else {
+        info!("ok")
+    }
+    Ok(())
 }
 
 lazy_static! {
@@ -145,7 +167,7 @@ lazy_static! {
         let mut tera = match Tera::new("assets/**/*.html") {
             Ok(t) => t,
             Err(e) => {
-                println!("Error parsing templates. {}", e);
+                info!("Error parsing templates. {}", e);
                 exit(1);
             }
         };
