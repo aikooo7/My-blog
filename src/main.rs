@@ -68,6 +68,15 @@ async fn home() -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok().body(rendered))
 }
 
+async fn notfound_handler() -> HttpResponse {
+    let notfound_html = TEMPLATES.render("html_separated/404.html", &tera::Context::new());
+    match notfound_html {
+        Ok(notfound_html) => HttpResponse::NotFound()
+            .content_type("text/html")
+            .body(notfound_html),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
