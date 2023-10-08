@@ -271,12 +271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.75"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
-
-[[package]]
 name = "askama_escape"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,7 +330,6 @@ version = "0.1.0"
 dependencies = [
  "actix-files",
  "actix-web",
- "anyhow",
  "env_logger",
  "glob",
  "lazy_static",

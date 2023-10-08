@@ -1,8 +1,8 @@
 use actix_files::{self};
 use actix_web::{get, web, App, Error, HttpResponse, HttpServer};
-use anyhow::Result;
 use glob::glob;
 use lazy_static::lazy_static;
+use log::{error, info};
 use std::{path::PathBuf, process::exit};
 use tera::Tera;
 
