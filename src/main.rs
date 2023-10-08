@@ -8,29 +8,78 @@ use tera::Tera;
 
 async fn render_html(req: actix_web::HttpRequest, tmpl: web::Data<tera::Tera>) -> HttpResponse {
     // Extract filename from the request path
-    let filename = req.match_info().query("filename").to_string();
-    let filename_final = if filename.contains("html_separated") {
-        return HttpResponse::Forbidden().body("Access denied: file is not accessible.");
-    } else {
-        format!("html/{}", filename)
+    let filename_pattern = format!("assets/**/{}", req.match_info().query("filename"));
+
+    let filename = glob(&filename_pattern);
+
+    let check_filename = match filename {
+        Ok(paths) => {
+            let valid_paths: Vec<PathBuf> = paths.filter_map(Result::ok).collect();
+
+            for path in &valid_paths {
+                if !path.exists() {
+                    return notfound_handler().await;
+                }
+            }
+
+            let valid_filenames: Vec<String> = valid_paths
+                .iter()
+                .filter_map(|path| {
+                    if path.to_string_lossy().contains("html_separated/") {
+                        None
+                    } else {
+                        path.strip_prefix("assets/")
+                            .ok()
+                            .map(|stripped_path| stripped_path.to_string_lossy().to_string())
+                    }
+                })
+                .collect();
+            valid_filenames.first().cloned()
+        }
+        Err(err) => {
+            error!("Error finding forbidden file: {}", err);
+            None
+        }
     };
 
-    let filename_pathbuf = PathBuf::from(filename);
+    let filename_pathbuf = match &check_filename {
+        Some(filename) => PathBuf::from(filename),
+        None => {
+            let message: String = "Error transforming checked_filename to pathbuf.".to_string();
+            info!("{} NOTE: This is a info since if the user goes to a non existing page this will be also triggered.", message);
+            return HttpResponse::InternalServerError().body(message);
+        }
+    };
     let mut context = tera::Context::new();
     context.insert(
         "filename",
         &filename_pathbuf
             .with_extension("")
-            .to_string_lossy()
-            .to_string()
-            .replace('_', " "),
+            .file_name()
+            .ok_or_else(|| {
+                "Error inserting filename to context"
+                    .to_string()
+                    .replace('_', " ")
+            })
+            .map(|os_str| os_str.to_string_lossy().to_string()) // Convert &OsStr to String
+            .map_err(|err| error!("Error inserting filename to context: {}", err))
+            .unwrap_or_else(|err| {
+                let message = format!("Error inserting the context filename {:?}", err);
+                error!("{}", message);
+                message
+            }),
     );
 
-    let rendered_html = tmpl
-        .render(&filename_final, &context)
-        .expect("Error rendering template");
-
-    HttpResponse::Ok().body(rendered_html)
+    match check_filename {
+        Some(filename_final) => match tmpl.render(&filename_final, &context) {
+            Ok(rendered_html) => HttpResponse::Ok().body(rendered_html),
+            Err(err) => {
+                error!("Error rendering template: {}", err);
+                servererror_handler().await
+            }
+        },
+        None => HttpResponse::Forbidden().body("Access denied: file is not accessible."),
+    }
 }
 
 #[get("/")]
